@@ -2,6 +2,8 @@ const { Client } = require('pg')
 
 const client = new Client('postgres://localhost:5432/juicebox-dev');
 
+
+
 async function createUser({ 
   username, 
   password,
@@ -236,6 +238,25 @@ async function createPostTag(postId, tagId) {
   }
 }
 
+// BELOW IS NEW ***********************************************************
+async function getAllTags() {
+  try {
+    const { rows: tagIds } = await client.query(`
+    SELECT * FROM tags;
+    `);
+
+    const posts = await Promise.all(tagIds.map(
+      post => getPostById( tag.id )
+    ));
+
+    return posts;
+  } catch (error) {
+    throw error;
+  }
+}
+
+// ***************************************************************
+
 async function addTagsToPost(postId, tagList) {
   try {
     const createPostTagPromises = tagList.map(
@@ -300,7 +321,6 @@ async function getPostsByTagName(tagName) {
   }
 } 
 
-
 module.exports = {  
   client,
   createUser,
@@ -315,6 +335,7 @@ module.exports = {
   createPostTag,
   addTagsToPost,
   getPostById,
-  getPostsByTagName
+  getPostsByTagName,
+  getAllTags
   
 }
