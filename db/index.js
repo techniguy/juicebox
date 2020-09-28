@@ -95,6 +95,20 @@ async function getUserById(userId) {
   }
 }
 
+async function getUserByUsername(username) {
+  try {
+    const { rows: [user] } = await client.query(`
+      SELECT *
+      FROM users
+      WHERE username=$1
+    `, [username]);
+
+    return user;
+  } catch (error) {
+    throw error;
+  }
+}
+
 async function createPost({
   authorId,
   title,
@@ -200,15 +214,12 @@ async function createTags(tagList) {
     return; 
   }
 
- 
   const insertValues = tagList.map(
     (_, index) => `$${index + 1}`).join('), (');
   
-
   const selectValues = tagList.map(
     (_, index) => `$${index + 1}`).join(', ');
   
-
   try {
    await client.query(`
     INSERT INTO tags(name)
@@ -242,18 +253,17 @@ async function createPostTag(postId, tagId) {
 async function getAllTags() {
   try {
     const { rows: tagIds } = await client.query(`
-    SELECT * FROM tags;
+    SELECT id FROM tags;
     `);
 
-    const posts = await Promise.all(tagIds.map(
-      post => getPostById( tag.id )
-    ));
+    const posts = await Promise.all(tagIds.map(tag => getPostById( tag.id )));
 
     return posts;
   } catch (error) {
     throw error;
   }
 }
+
 
 // ***************************************************************
 
@@ -271,6 +281,7 @@ async function addTagsToPost(postId, tagList) {
   }
 }
 
+// ************* BELOW IS FROM Day3 of JuiceBox Pt1 Adding tags to posts*******
 async function getPostById(postId) {
   try {
     const { rows: [ post ]  } = await client.query(`
@@ -278,6 +289,14 @@ async function getPostById(postId) {
       FROM posts
       WHERE id=$1;
     `, [postId]);
+    console.log('post',post);
+
+    if (!post) {
+      throw {
+        name: "PostNotFoundError",
+        message: "Could not find a post with that postId"
+      };
+    }
 
     const { rows: tags } = await client.query(`
       SELECT tags.*
@@ -285,13 +304,16 @@ async function getPostById(postId) {
       JOIN post_tags ON tags.id=post_tags."tagId"
       WHERE post_tags."postId"=$1;
     `, [postId])
+    console.log('tags',tags);
+    
 
     const { rows: [author] } = await client.query(`
       SELECT id, username, name, location
       FROM users
       WHERE id=$1;
-    `, [post.authorId])
-
+      `, [post.authorId])
+    console.log('author',tags);
+    
     post.tags = tags;
     post.author = author;
 
@@ -302,6 +324,9 @@ async function getPostById(postId) {
     throw error;
   }
 }
+
+// ********************************************************************************
+
 
 async function getPostsByTagName(tagName) {
   try {
@@ -336,6 +361,6 @@ module.exports = {
   addTagsToPost,
   getPostById,
   getPostsByTagName,
-  getAllTags
-  
+  getAllTags,
+  getUserByUsername
 }
